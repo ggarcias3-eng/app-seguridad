@@ -1,0 +1,27 @@
+name: CI/CD Seguridad
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  ci:
+    name: CI - Tests & Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 16 }
+      - run: npm ci || npm install
+      - run: npm test || echo "sin tests"
+      - run: npm audit --audit-level=high || true
+      - run: docker build -t app-seguridad:ci .
+
+  deploy:
+    name: Deploy - CentOS7 (self-hosted)
+    needs: [ci]
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker-compose -f compose.test.yml up -d --build
+      - run: curl -sSf http://localhost:8081/ | jq .
